@@ -35,5 +35,6 @@ b3zsum  0,16s user 0,04s system 78% cpu 0,261 total
 
 ## TODO
 
+ - keep only one CV per cached block (instead of current 2 for minimal blake3 patching)
  - port to Rust
  - add multithread processing of non-sparse areas
