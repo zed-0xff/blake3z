@@ -52,10 +52,17 @@ endif()
 
 add_subdirectory(${blake3_SOURCE_DIR}/c blake3)
 
+add_library(blake3z STATIC dummy.c)
+target_link_libraries(blake3z PUBLIC blake3)
+
+add_library(blake3z_file STATIC blake3z_file.cpp)
+target_link_libraries(blake3z_file PRIVATE blake3z)
+
 # Create the executable
 add_executable(b3zsum b3zsum.cpp)
-target_link_libraries(b3zsum PRIVATE blake3)
+target_include_directories(b3zsum PRIVATE ${blake3_SOURCE_DIR}/c)
+target_link_libraries(b3zsum PRIVATE blake3z_file)
 target_compile_definitions(b3zsum PRIVATE DEFAULT_CACHE_PATHNAME="${DEFAULT_CACHE_PATHNAME}")
 
 add_executable(b3z_gen_cache gen_cache.cpp)
-target_link_libraries(b3z_gen_cache PRIVATE blake3)
+target_link_libraries(b3z_gen_cache PRIVATE blake3z)
