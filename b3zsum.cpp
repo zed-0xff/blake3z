@@ -82,12 +82,12 @@ SparseMap buildSparseMap(const std::string& file_path, int64_t fileSize) {
 
 #define CACHE_BLOCK_SIZE (BLAKE3_CACHE_BLOCK_CHUNKS * BLAKE3_CHUNK_LEN)
 
-void bl3_calc_file(const std::string &file_path){
+void bl3_calc_file(const std::filesystem::path &file_path, uint8_t hash_output[BLAKE3_OUT_LEN]){
     const std::vector<char> zeroes(CACHE_BLOCK_SIZE, 0);
 
     std::ifstream file(file_path, std::ios::binary);
     if (!file.is_open()) {
-        throw std::runtime_error("Failed to open file: " + file_path);
+        throw std::runtime_error("Failed to open file: " + file_path.string());
     }
 
     size_t fsize = 0;
@@ -132,14 +132,7 @@ void bl3_calc_file(const std::string &file_path){
     }
 
     // Finalize the hash
-    uint8_t hash_output[BLAKE3_OUT_LEN];
-    blake3_hasher_finalize(&hasher, hash_output, sizeof(hash_output));
-
-    // Print the hash
-    for (size_t i = 0; i < BLAKE3_OUT_LEN; ++i) {
-        printf("%02x", hash_output[i]);
-    }
-    printf("  %s\n", file_path.c_str());
+    blake3_hasher_finalize(&hasher, hash_output, BLAKE3_OUT_LEN);
 }
 
 void usage(char* argv[]){
@@ -179,9 +172,24 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.c_str(), strerror(errno));
     }
 
+    int result = 0;
     for(const auto& fname : fnames){
-        bl3_calc_file(fname);
+        if( std::filesystem::is_directory(fname) ){
+            // mimic b3sum behavior
+            fprintf(stderr, "b3zsum: %s: Is a directory\n", fname.c_str());
+            result = 1;
+            continue;
+        }
+
+        uint8_t hash_output[BLAKE3_OUT_LEN];
+        bl3_calc_file(fname, hash_output);
+
+        // Print the hash
+        for (size_t i = 0; i < BLAKE3_OUT_LEN; ++i) {
+            printf("%02x", hash_output[i]);
+        }
+        printf("  %s\n", fname.c_str());
     }
     blake3_close_cache();
-    return 0;
+    return result;
 }
