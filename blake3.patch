@@ -1,0 +1,126 @@
+diff --git a/c/blake3.c b/c/blake3.c
+index 7e6d01e..1f87198 100644
+--- a/c/blake3.c
++++ b/c/blake3.c
+@@ -5,6 +5,9 @@
+ #include "blake3.h"
+ #include "blake3_impl.h"
+ 
++#include <stdio.h>
++static FILE *fcache = NULL;
++
+ const char *blake3_version(void) { return BLAKE3_VERSION_STRING; }
+ 
+ INLINE void chunk_state_init(blake3_chunk_state *self, const uint32_t key[8],
+@@ -366,6 +369,13 @@ INLINE void compress_subtree_to_parent_node(
+   memcpy(out, cv_array, 2 * BLAKE3_OUT_LEN);
+ }
+ 
++void compress_subtree_to_parent_node_ex(
++    const uint8_t *input, size_t input_len, const uint32_t key[8],
++    uint64_t chunk_counter, uint8_t flags, uint8_t out[2 * BLAKE3_OUT_LEN]) {
++
++    compress_subtree_to_parent_node(input, input_len, key, chunk_counter, flags, out);
++}
++
+ INLINE void hasher_init_base(blake3_hasher *self, const uint32_t key[8],
+                              uint8_t flags) {
+   memcpy(self->key, key, BLAKE3_KEY_LEN);
+@@ -459,8 +469,29 @@ INLINE void hasher_push_cv(blake3_hasher *self, uint8_t new_cv[BLAKE3_OUT_LEN],
+   self->cv_stack_len += 1;
+ }
+ 
+-void blake3_hasher_update(blake3_hasher *self, const void *input,
+-                          size_t input_len) {
++void blake3_close_cache() {
++    if( fcache != NULL ){
++        fclose(fcache);
++        fcache = NULL;
++    }
++}
++
++int blake3_open_cache(const char *fname) {
++    blake3_close_cache();
++    fcache = fopen(fname, "rb");
++    return fcache != NULL;
++}
++
++int read_cache(uint64_t pos, uint8_t *cv_pair) {
++    if( fcache == NULL ){
++        return 0;
++    }
++    fseek(fcache, pos * BLAKE3_OUT_LEN * 2, SEEK_SET);
++    return fread(cv_pair, 1, BLAKE3_OUT_LEN * 2, fcache) == BLAKE3_OUT_LEN * 2;
++}
++
++void blake3_hasher_update_ex(blake3_hasher *self, const void *input,
++                          size_t input_len, int is_zeroes){
+   // Explicitly checking for zero avoids causing UB by passing a null pointer
+   // to memcpy. This comes up in practice with things like:
+   //   std::vector<uint8_t> v;
+@@ -544,9 +575,16 @@ void blake3_hasher_update(blake3_hasher *self, const void *input,
+       // This is the high-performance happy path, though getting here depends
+       // on the caller giving us a long enough input.
+       uint8_t cv_pair[2 * BLAKE3_OUT_LEN];
+-      compress_subtree_to_parent_node(input_bytes, subtree_len, self->key,
+-                                      self->chunk.chunk_counter,
+-                                      self->chunk.flags, cv_pair);
++      if( is_zeroes &&
++          subtree_len == BLAKE3_CACHE_BLOCK_CHUNKS*BLAKE3_CHUNK_LEN &&
++          (self->chunk.chunk_counter % BLAKE3_CACHE_BLOCK_CHUNKS) == 0 &&
++          read_cache(self->chunk.chunk_counter/BLAKE3_CACHE_BLOCK_CHUNKS, cv_pair) ){
++          // got CVs from cache
++      } else {
++          compress_subtree_to_parent_node(input_bytes, subtree_len, self->key,
++              self->chunk.chunk_counter,
++              self->chunk.flags, cv_pair);
++      }
+       hasher_push_cv(self, cv_pair, self->chunk.chunk_counter);
+       hasher_push_cv(self, &cv_pair[BLAKE3_OUT_LEN],
+                      self->chunk.chunk_counter + (subtree_chunks / 2));
+@@ -568,6 +606,11 @@ void blake3_hasher_update(blake3_hasher *self, const void *input,
+   }
+ }
+ 
++void blake3_hasher_update(blake3_hasher *self, const void *input,
++                          size_t input_len) {
++    blake3_hasher_update_ex(self, input, input_len, 0);
++}
++
+ void blake3_hasher_finalize(const blake3_hasher *self, uint8_t *out,
+                             size_t out_len) {
+   blake3_hasher_finalize_seek(self, 0, out, out_len);
+diff --git a/c/blake3.h b/c/blake3.h
+index 9ed62f9..66dc8e7 100644
+--- a/c/blake3.h
++++ b/c/blake3.h
+@@ -36,6 +36,7 @@ extern "C" {
+ #define BLAKE3_BLOCK_LEN 64
+ #define BLAKE3_CHUNK_LEN 1024
+ #define BLAKE3_MAX_DEPTH 54
++#define BLAKE3_CACHE_BLOCK_CHUNKS (32*1024)
+ 
+ // This struct is a private implementation detail. It has to be here because
+ // it's part of blake3_hasher below.
+@@ -69,12 +70,21 @@ BLAKE3_API void blake3_hasher_init_derive_key_raw(blake3_hasher *self, const voi
+                                                   size_t context_len);
+ BLAKE3_API void blake3_hasher_update(blake3_hasher *self, const void *input,
+                                      size_t input_len);
++BLAKE3_API void blake3_hasher_update_ex(blake3_hasher *self, const void *input,
++                                     size_t input_len, int is_zeroes);
+ BLAKE3_API void blake3_hasher_finalize(const blake3_hasher *self, uint8_t *out,
+                                        size_t out_len);
+ BLAKE3_API void blake3_hasher_finalize_seek(const blake3_hasher *self, uint64_t seek,
+                                             uint8_t *out, size_t out_len);
+ BLAKE3_API void blake3_hasher_reset(blake3_hasher *self);
+ 
++BLAKE3_API void compress_subtree_to_parent_node_ex(
++    const uint8_t *input, size_t input_len, const uint32_t key[8],
++    uint64_t chunk_counter, uint8_t flags, uint8_t out[2 * BLAKE3_OUT_LEN]);
++
++BLAKE3_API int blake3_open_cache(const char* fname);
++BLAKE3_API void blake3_close_cache();
++
+ #ifdef __cplusplus
+ }
+ #endif
