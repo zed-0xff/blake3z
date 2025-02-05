@@ -33,6 +33,20 @@ b1c2261fe9e9b7c16bd68dc02bc50aeb5988fccbc13d6a0fb1be06ade28b1071  data
 b3zsum  0,16s user 0,04s system 78% cpu 0,261 total
 ```
 
+## Code example
+
+(see [b3zsum/](b3zsum/) or [gen_cache/](gen_cache/) for full code)
+
+```c
+blake3_open_cache(cache_fname); // look for pregenerated "blake3z.cache"
+for(const auto& fname : fnames){
+    uint8_t hash_output[BLAKE3_OUT_LEN];
+    blake3z_calc_file(fname, hash_output);
+    // do something with output
+}
+blake3_close_cache();
+```
+
 ## TODO
 
  - keep only one CV per cached block (instead of current 2 for minimal blake3 patching)
