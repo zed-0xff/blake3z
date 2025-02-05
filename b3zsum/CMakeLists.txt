@@ -23,5 +23,6 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(blake3z)
 
 add_executable(b3zsum b3zsum.cpp)
-target_link_libraries(b3zsum PUBLIC blake3z_file)
+target_include_directories(b3zsum PRIVATE ${blake3z_SOURCE_DIR})
+target_link_libraries(b3zsum PRIVATE blake3z_file)
 target_compile_definitions(b3zsum PRIVATE DEFAULT_CACHE_PATHNAME="${DEFAULT_CACHE_PATHNAME}")

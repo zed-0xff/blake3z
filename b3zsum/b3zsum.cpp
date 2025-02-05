@@ -1,4 +1,4 @@
-#include "blake3z_file.hpp"
+#include <blake3z_file.hpp>
 
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
