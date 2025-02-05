@@ -1,6 +1,6 @@
 # 🚀 Zero Block Caching for Faster BLAKE3 Hashing  
 
-This update adds **zero block caching** to BLAKE3, improving performance when hashing large zero-filled regions like sparse files or disk images. Instead of repeatedly processing zero chunks, the hasher now **reuses precomputed values**, reducing CPU load while keeping the hash results unchanged. A **32MB block size** was chosen as a balance between **cache size and memory usage**, ensuring efficient hashing without excessive resource consumption.  
+This update adds **zero block caching** to [BLAKE3](https://github.com/BLAKE3-team/BLAKE3), improving performance when hashing large zero-filled regions like sparse files or disk images. Instead of repeatedly processing zero chunks, the hasher now **reuses precomputed values**, reducing CPU load while keeping the hash results unchanged. A **32MB block size** was chosen as a balance between **cache size and memory usage**, ensuring efficient hashing without excessive resource consumption.  
 
 The resulting library remains **fully backwards compatible** with the original BLAKE3, producing identical hashes for all inputs.  
 
