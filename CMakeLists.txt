@@ -11,7 +11,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_BUILD_TYPE Release)
 
-set(DEFAULT_CACHE_PATHNAME "b3zsum.cache" CACHE STRING "Default cache file pathname")
+set(DEFAULT_CACHE_PATHNAME "{exe_path}/b3zsum.cache" CACHE STRING "Default cache file pathname")
 
 include(FetchContent)
 

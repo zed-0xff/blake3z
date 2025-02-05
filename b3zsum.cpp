@@ -1,3 +1,4 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <utility> // for std::pair
@@ -8,6 +9,46 @@
 
 #include <blake3.h>
 #include <blake3_impl.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#include <libloaderapi.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#include <limits.h>
+#else
+#include <unistd.h>
+#include <libgen.h>
+#endif
+
+std::filesystem::path get_exe_path() {
+#if defined(_WIN32) || defined(_WIN64)
+    // Windows
+    char buffer[MAX_PATH];
+    GetModuleFileName(NULL, buffer, MAX_PATH);
+    std::filesystem::path exePath(buffer);
+    return exePath.parent_path();  // Return the parent directory
+#elif defined(__APPLE__)
+    // macOS
+    char buffer[PATH_MAX];
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) == 0) {
+        std::filesystem::path exePath(buffer);
+        return exePath.parent_path();  // Return the parent directory
+    }
+    return ".";  // Return "." if empty or error
+#else
+    // Linux/Unix
+    char buffer[1024];
+    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        std::filesystem::path exePath(buffer);
+        return exePath.parent_path();  // Return the parent directory
+    }
+    return ".";  // Return "." if empty or error
+#endif
+}
 
 typedef std::vector<std::pair<int64_t, int64_t>> SparseMap;
 
@@ -107,7 +148,7 @@ void usage(char* argv[]){
 }
 
 int main(int argc, char *argv[]) {
-    const char* cache_fname = DEFAULT_CACHE_PATHNAME;
+    std::filesystem::path cache_fname = DEFAULT_CACHE_PATHNAME;
     if (argc < 2) {
         usage(argv);
     }
@@ -128,8 +169,14 @@ int main(int argc, char *argv[]) {
         usage(argv);
     }
 
-    if( !blake3_open_cache(cache_fname) ){
-        fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname, strerror(errno));
+    const int exe_pos = cache_fname.string().find("{exe_path}");
+    if( exe_pos != std::string::npos ){
+        std::string exe_path = get_exe_path();
+        cache_fname = cache_fname.string().replace(exe_pos, 10, exe_path);
+    }
+
+    if( !blake3_open_cache(cache_fname.c_str()) ){
+        fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.c_str(), strerror(errno));
     }
 
     for(const auto& fname : fnames){
