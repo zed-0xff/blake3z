@@ -4,6 +4,7 @@
 #include <unistd.h>  // for lseek
 
 #include <fstream>
+#include <sstream>
 
 #ifdef O_BINARY
 #define OPEN_MODE O_RDONLY|O_BINARY
@@ -84,4 +85,17 @@ void blake3z_calc_file(const std::filesystem::path &file_path, uint8_t hash_outp
 
     // Finalize the hash
     blake3_hasher_finalize(&hasher, hash_output, BLAKE3_OUT_LEN);
+}
+
+std::string blake3z_calc_file_str(const std::filesystem::path &file_path){
+    uint8_t hash_output[BLAKE3_OUT_LEN];
+    blake3z_calc_file(file_path, hash_output);
+
+    std::ostringstream hex_stream;
+    hex_stream << std::hex << std::setfill('0');
+    for (size_t i = 0; i < BLAKE3_OUT_LEN; i++) {
+        hex_stream << std::setw(2) << static_cast<int>(hash_output[i]);
+    }
+
+    return hex_stream.str();
 }

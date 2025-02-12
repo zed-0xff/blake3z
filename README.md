@@ -47,6 +47,15 @@ for(const auto& fname : fnames){
 blake3_close_cache();
 ```
 
+```c
+blake3_open_cache(cache_fname); // look for pregenerated "blake3z.cache"
+for(const auto& fname : fnames){
+    std::string hash = blake3z_calc_file_str(fname);
+    // do something with hash
+}
+blake3_close_cache();
+```
+
 ## TODO
 
  - keep only one CV per cached block (instead of current 2 for minimal blake3 patching)
