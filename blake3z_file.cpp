@@ -12,10 +12,10 @@
 #define OPEN_MODE O_RDONLY
 #endif
 
-SparseMap build_sparse_map(const std::string& file_path, int64_t fileSize) {
+SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileSize) {
     int fd = open(file_path.c_str(), OPEN_MODE);
     if (fd == -1) {
-        throw std::runtime_error("Failed to open file: " + file_path + " (" + std::to_string(errno) + ")");
+        throw std::runtime_error("Failed to open file: " + file_path.string() + " (" + std::to_string(errno) + ")");
     }
     SparseMap result;
     for (int64_t pos = 0; pos < fileSize;) {
