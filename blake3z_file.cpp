@@ -13,11 +13,12 @@
 #endif
 
 SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileSize) {
+    SparseMap result;
+#ifdef SEEK_HOLE
     int fd = open(file_path.c_str(), OPEN_MODE);
     if (fd == -1) {
         throw std::runtime_error("Failed to open file: " + file_path.string() + " (" + std::to_string(errno) + ")");
     }
-    SparseMap result;
     for (int64_t pos = 0; pos < fileSize;) {
         int64_t nextHole = lseek(fd, pos, SEEK_HOLE);
         if (nextHole == -1) {
@@ -31,6 +32,9 @@ SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileS
         pos = nextData;
     }
     close(fd);
+#else
+#warning "SEEK_HOLE not defined, sparse file support disabled"
+#endif
     return result;
 }
 
