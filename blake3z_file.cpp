@@ -12,6 +12,10 @@
 #define OPEN_MODE O_RDONLY
 #endif
 
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
+
 SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileSize) {
     SparseMap result;
 #ifdef SEEK_HOLE
