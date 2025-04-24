@@ -1,5 +1,7 @@
 #include <blake3z_file.hpp>
 
+#define VERSION "0.5"
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #include <libloaderapi.h>
@@ -41,6 +43,7 @@ std::filesystem::path get_exe_path() {
 }
 
 void usage(char* argv[]){
+    printf("b3zsum v%s\n", VERSION);
     printf("Usage: %s [-c cache_fname] <fname1> [fname2 ...]\n", argv[0]);
     exit(1);
 }
