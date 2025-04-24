@@ -51,8 +51,10 @@ SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileS
         throw std::runtime_error("Failed to open file: " + file_path.string());
     }
 
-    FILE_ALLOCATED_RANGE_BUFFER inRange = { 0, fileSize };
-    FILE_ALLOCATED_RANGE_BUFFER outRanges[1024]; // Adjust size as needed
+    FILE_ALLOCATED_RANGE_BUFFER inRange = { 0 };
+    inRange.Length.QuadPart = fileSize;
+
+    FILE_ALLOCATED_RANGE_BUFFER outRanges[1024]; // TODO: correct size
     DWORD bytesReturned;
 
     if (DeviceIoControl(
@@ -70,10 +72,10 @@ SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileS
 
         for (DWORD i = 0; i < rangeCount; ++i) {
             const auto& r = outRanges[i];
-            if (r.FileOffset > pos) {
-                result.emplace_back(pos, r.FileOffset); // sparse region
+            if (r.FileOffset.QuadPart > pos) {
+                result.emplace_back(pos, r.FileOffset.QuadPart); // sparse region
             }
-            pos = r.FileOffset + r.Length;
+            pos = r.FileOffset.QuadPart + r.Length.QuadPart;
         }
 
         if (pos < fileSize) {
