@@ -33,7 +33,55 @@ SparseMap build_sparse_map(const std::filesystem::path& file_path, int64_t fileS
     }
     close(fd);
 #else
-#warning "SEEK_HOLE not defined, sparse file support disabled"
+    HANDLE hFile = CreateFileW(
+        file_path.c_str(),
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_FLAG_NO_BUFFERING,
+        nullptr
+        );
+
+    if (hFile == INVALID_HANDLE_VALUE) {
+        throw std::runtime_error("Failed to open file: " + file_path.string());
+    }
+
+    FILE_ALLOCATED_RANGE_BUFFER inRange = { 0, fileSize };
+    FILE_ALLOCATED_RANGE_BUFFER outRanges[1024]; // Adjust size as needed
+    DWORD bytesReturned;
+
+    if (DeviceIoControl(
+            hFile,
+            FSCTL_QUERY_ALLOCATED_RANGES,
+            &inRange,
+            sizeof(inRange),
+            outRanges,
+            sizeof(outRanges),
+            &bytesReturned,
+            nullptr)) {
+
+        DWORD rangeCount = bytesReturned / sizeof(FILE_ALLOCATED_RANGE_BUFFER);
+        int64_t pos = 0;
+
+        for (DWORD i = 0; i < rangeCount; ++i) {
+            const auto& r = outRanges[i];
+            if (r.FileOffset > pos) {
+                result.emplace_back(pos, r.FileOffset); // sparse region
+            }
+            pos = r.FileOffset + r.Length;
+        }
+
+        if (pos < fileSize) {
+            result.emplace_back(pos, fileSize); // trailing sparse region
+        }
+
+    } else {
+        CloseHandle(hFile);
+        throw std::runtime_error("DeviceIoControl failed: " + std::to_string(GetLastError()));
+    }
+
+    CloseHandle(hFile);
 #endif
     return result;
 }
