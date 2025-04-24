@@ -2,6 +2,8 @@
 
 #define VERSION "0.5"
 
+#include <cstring>
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #include <libloaderapi.h>
@@ -72,11 +74,11 @@ int main(int argc, char *argv[]) {
 
     const int exe_pos = cache_fname.string().find("{exe_path}");
     if( exe_pos != std::string::npos ){
-        std::string exe_path = get_exe_path();
+        std::string exe_path = get_exe_path().string();
         cache_fname = cache_fname.string().replace(exe_pos, 10, exe_path);
     }
 
-    if( !blake3_open_cache(cache_fname.c_str()) ){
+    if( !blake3_open_cache(cache_fname.string().c_str()) ){
         fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.c_str(), strerror(errno));
     }
 

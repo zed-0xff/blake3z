@@ -1,0 +1,17 @@
+set(HOST x86_64-w64-mingw32)
+set(WINDOWS TRUE)
+
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_VERSION 10)
+
+# Specify the cross-compiler paths
+set(CMAKE_C_COMPILER ${HOST}-gcc)
+set(CMAKE_CXX_COMPILER ${HOST}-g++)
+set(CMAKE_RC_COMPILER ${HOST}-windres)
+
+# Adjust the search behavior
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+add_compile_definitions(_FILE_OFFSET_BITS=64 _LARGEFILE64_SOURCE)
