@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     }
 
     if( !blake3_open_cache(cache_fname.string().c_str()) ){
-        fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.c_str(), strerror(errno));
+        fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.string().c_str(), strerror(errno));
     }
 
     int result = 0;
