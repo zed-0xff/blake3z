@@ -121,7 +121,7 @@ void blake3z_calc_file(const std::filesystem::path &file_path, uint8_t hash_outp
             }
             if( hole != sparseMap.end() ){
                 while( pos >= hole->first && pos + CACHE_BLOCK_SIZE <= hole->second ){
-                    blake3_hasher_update_ex(&hasher, zeroes.data(), CACHE_BLOCK_SIZE, 1);
+                    blake3_hasher_update_zeroes(&hasher, zeroes.data(), CACHE_BLOCK_SIZE);
                     pos += CACHE_BLOCK_SIZE;
                 }
                 if( pos >= fsize ){

@@ -16,14 +16,14 @@ include(FetchContent)
 FetchContent_Declare(
     blake3
     GIT_REPOSITORY https://github.com/BLAKE3-team/BLAKE3
-    GIT_TAG 96d90e67d077c4636ef6e792b82b3e11edaefbc6
+    GIT_TAG 1.8.2
 )
 
 FetchContent_MakeAvailable(blake3)
 
 # Check if the patch is already applied
 execute_process(
-    COMMAND git apply --check --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/blake3.patch
+    COMMAND git apply --reverse --check --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/blake3.patch
     WORKING_DIRECTORY ${blake3_SOURCE_DIR}
     RESULT_VARIABLE PATCH_CHECK_RESULT
     ERROR_VARIABLE PATCH_CHECK_ERROR
@@ -31,6 +31,8 @@ execute_process(
 )
 
 if(PATCH_CHECK_RESULT EQUAL 0)
+    message(STATUS "Patch already applied, skipping.")
+else()
     message(STATUS "Applying blake3.patch...")
     execute_process(
         COMMAND git apply --ignore-space-change --ignore-whitespace ${CMAKE_CURRENT_SOURCE_DIR}/blake3.patch
@@ -44,8 +46,6 @@ if(PATCH_CHECK_RESULT EQUAL 0)
         message(FATAL_ERROR "Failed to apply patch:\n${PATCH_ERROR}")
     endif()
 
-else()
-    message(STATUS "Patch already applied, skipping.")
 endif()
 
 add_subdirectory(${blake3_SOURCE_DIR}/c blake3)
