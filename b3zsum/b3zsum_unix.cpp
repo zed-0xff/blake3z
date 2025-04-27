@@ -1,13 +1,6 @@
-#include <blake3z_file.hpp>
+#include "common.hpp"
 
-#define VERSION "0.5"
-
-#include <cstring>
-
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-#include <libloaderapi.h>
-#elif defined(__APPLE__)
+#if defined(__APPLE__)
 #include <mach-o/dyld.h>
 #include <limits.h>
 #else
@@ -16,13 +9,7 @@
 #endif
 
 std::filesystem::path get_exe_path() {
-#if defined(_WIN32) || defined(_WIN64)
-    // Windows
-    char buffer[MAX_PATH];
-    GetModuleFileName(NULL, buffer, MAX_PATH);
-    std::filesystem::path exePath(buffer);
-    return exePath.parent_path();  // Return the parent directory
-#elif defined(__APPLE__)
+#if defined(__APPLE__)
     // macOS
     char buffer[PATH_MAX];
     uint32_t size = sizeof(buffer);
@@ -52,13 +39,23 @@ void usage(char* argv[]){
 
 int main(int argc, char *argv[]) {
     std::filesystem::path cache_fname = DEFAULT_CACHE_PATHNAME;
+    bool silent = false;
+
     if (argc < 2) {
         usage(argv);
     }
 
     std::vector<std::string> fnames;
     for(int i=1; i<argc; i++){
-        if( strcmp(argv[i], "-c") == 0 ){
+        if( strcmp(argv[i], "-s") == 0 ){
+            silent = true;
+        } else if( strcmp(argv[i], "-c") == 0 ){
+            if( i+1 >= argc ){
+                usage(argv);
+            }
+            cache_fname = argv[++i];
+        } else if( strcmp(argv[i], "-sc") == 0 ){
+            silent = true;
             if( i+1 >= argc ){
                 usage(argv);
             }
@@ -79,16 +76,31 @@ int main(int argc, char *argv[]) {
     }
 
     if( !blake3_open_cache(cache_fname.string().c_str()) ){
-        fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.string().c_str(), strerror(errno));
+        if( !silent ){
+            fprintf(stderr, "[?] Failed to open %s: %s\n", cache_fname.string().c_str(), strerror(errno));
+        }
     }
 
     int result = 0;
     for(const auto& fname : fnames){
         if( std::filesystem::is_directory(fname) ){
-            // mimic b3sum behavior
-            fprintf(stderr, "b3zsum: %s: Is a directory\n", fname.c_str());
-            result = 1;
+            if( !silent ){
+                // mimic b3sum behavior
+                fprintf(stderr, "b3zsum: %s: Is a directory\n", fname.c_str());
+                result = 1;
+            }
             continue;
+        }
+
+        {
+        std::ifstream f(fname, std::ios::binary);
+        if( !f ){
+            if( !silent ){
+                fprintf(stderr, "b3zsum: %s: %s (os error %d)\n", fname.c_str(), strerror(errno), errno);
+                result = 1;
+            }
+            continue;
+        }
         }
 
         uint8_t hash_output[BLAKE3_OUT_LEN];
