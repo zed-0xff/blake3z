@@ -2,4 +2,4 @@
 #include <cstring>
 #include <fstream>
 
-#define VERSION "0.6"
+#define VERSION "1.0"
